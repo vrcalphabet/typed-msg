@@ -1,0 +1,28 @@
+# Node.js関連
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript
+dist/
+build/
+*.tsbuildinfo
+
+# 環境変数
+.env
+
+# IDE/エディタ
+.vscode/
+.idea/
+.DS_Store
+
+# テスト関連
+coverage/
+*.lcov
+
+# その他
+*.log
+*.swp
+*.swo

@@ -1,0 +1,28 @@
+{
+  "name": "typed-msg",
+  "version": "1.0.0",
+  "description": "Chrome拡張機能のSW⇔Content Scripts間の通信を型安全にするライブラリ",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "format": "prettier --write \"src/**/*.ts\" --log-level warn",
+    "docs": "npx typedoc"
+  },
+  "author": "vrcalphabet",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "@types/chrome": "^0.1.36",
+    "@types/node": "^25.2.1",
+    "typedoc": "^0.28.16",
+    "typescript": "^5.8.2",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}
