@@ -1,8 +1,12 @@
-import { FailureMessageResponse, SuccessMessageResponse } from '../main';
+type Success = { success: true };
+type SuccessData<T> = Success & { data: T };
 
-export function success<T extends void>(): SuccessMessageResponse<void>;
-export function success<T>(data: T): SuccessMessageResponse<T>;
-export function success<T>(data?: T) {
+type Failure = { success: false };
+type FailureMessage<T> = Failure & { message: T };
+
+export function success(): Success;
+export function success<T>(data: T): SuccessData<T>;
+export function success(data?: unknown) {
   if (data === undefined) {
     return { success: true };
   } else {
@@ -10,9 +14,9 @@ export function success<T>(data?: T) {
   }
 }
 
-export function failure<T extends void>(): FailureMessageResponse<void>;
-export function failure<T>(data: T): FailureMessageResponse<T>;
-export function failure<T>(data?: T) {
+export function failure(): Failure;
+export function failure<T>(data: T): FailureMessage<T>;
+export function failure(data?: unknown) {
   if (data === undefined) {
     return { success: false };
   } else {
