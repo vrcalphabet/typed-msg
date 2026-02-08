@@ -6,6 +6,7 @@ import {
 import { stringifyMessage } from './utils/message';
 
 export * from './types/message';
+export * from './utils/response';
 
 /**
  * メッセージリスナーとの通信を行うための送信用インターフェースを作成します。
