@@ -1,0 +1,32 @@
+{
+  "entryPoints": [
+    "src/main.ts",
+  ],
+  "exclude": ["src/types/internal/*.ts"],
+  "out": "docs",
+  "name": "typed-msg API Documentation",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "excludeNotDocumented": false,
+  "readme": "README.md",
+  "theme": "default",
+  "sort": ["source-order"],
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  },
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": ["Classes", "Interfaces", "Enums", "Types", "Other"],
+  "searchInComments": true,
+  "cleanOutputDir": true,
+  "plugin": [],
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false
+  }
+}
