@@ -84,7 +84,7 @@ export type MessageResponse<T = void> =
  * @template T - 成功時に返すデータの型。省略時は `void` です。
  */
 export type SuccessMessageResponse<T = void> =
-  T extends void ? { success: true } : { success: true; message: T };
+  T extends void ? { success: true } : { success: true; data: T };
 
 /**
  * 失敗時のレスポンス型です。
