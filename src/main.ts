@@ -5,7 +5,7 @@ import {
 } from './types/internal/message';
 import { stringifyMessage } from './utils/message';
 
-export * from './types/message';
+export type * from './types/message';
 export * from './utils/response';
 
 /**
