@@ -3,6 +3,7 @@ import {
   MessageHandler,
   MessageHandlers,
 } from '../types/internal/message';
+import { stringifyMessage } from '../utils/message';
 
 export class Receiver<
   T extends MergedMessageDefinitions,
@@ -10,16 +11,16 @@ export class Receiver<
 > {
   private handlers: MessageHandlers<T[K]> = {};
 
-  constructor(scope: K) {
+  constructor(private scope: K) {
     chrome.runtime.onMessage.addListener((message, sender, sendMessage) => {
       if (!this._typed(message)) return;
-      if (message.scope !== scope) return;
+      if (message.scope !== this.scope) return;
 
       (async () => {
         const handler = this.handlers[message.name];
         if (!handler) {
           throw new Error(
-            `scope: "${scope}", name: "${message.name}" のハンドラーが未定義です。`,
+            `ハンドラーが未定義です。${stringifyMessage(this.scope, message.name)}`,
           );
         }
 
@@ -62,7 +63,9 @@ export class Receiver<
    */
   on<V extends keyof T[K] & string>(name: V, handler: MessageHandler<T[K], V>) {
     if (name in this.handlers) {
-      throw new Error('同じ名前のメッセージリスナーは複数登録できません');
+      throw new Error(
+        `ハンドラーは複数登録できません。${stringifyMessage(this.scope, name)}`,
+      );
     }
 
     this.handlers[name] = handler;

@@ -3,6 +3,7 @@ import {
   MergedMessageDefinitions,
   MessageInterface,
 } from './types/internal/message';
+import { stringifyMessage } from './utils/message';
 
 export * from './types/message';
 
@@ -30,7 +31,10 @@ export function connect<T extends MergedMessageDefinitions>(
         new Promise((resolve, reject) =>
           chrome.runtime.sendMessage({ scope, name, req }, (res) => {
             if (chrome.runtime.lastError) {
-              reject(chrome.runtime.lastError);
+              reject({
+                message: `ハンドラーが未定義の可能性があります。${stringifyMessage(scope, name)}`,
+                error: chrome.runtime.lastError,
+              });
             } else {
               resolve(res);
             }
