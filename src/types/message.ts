@@ -59,6 +59,7 @@ export type MergeMessageDefinitions<T extends MergedMessageDefinitions> = T;
  * 失敗時は `{ success: false, message: string }` を返します。
  *
  * @template T - 成功時に返すデータの型。省略時は `void` です。
+ * @template K - 失敗時に返すメッセージの型。省略時は `string` です。
  *
  * @example
  * ```ts
@@ -71,9 +72,9 @@ export type MergeMessageDefinitions<T extends MergedMessageDefinitions> = T;
  * // { success: true, message: User } | { success: false, message: string }
  * ```
  */
-export type MessageResponse<T = void> =
+export type MessageResponse<T = void, K = string> =
   | SuccessMessageResponse<T>
-  | FailureMessageResponse;
+  | FailureMessageResponse<K>;
 
 /**
  * 成功時のレスポンス型です。
@@ -99,7 +100,5 @@ export type SuccessMessageResponse<T = void> =
  * };
  * ```
  */
-export type FailureMessageResponse = {
-  success: false;
-  message: string;
-};
+export type FailureMessageResponse<T = string> =
+  T extends void ? { success: false } : { success: false; message: T };
