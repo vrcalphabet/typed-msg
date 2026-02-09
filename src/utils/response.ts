@@ -15,11 +15,11 @@ export function success(data?: unknown) {
 }
 
 export function failure(): Failure;
-export function failure<T>(data: T): FailureMessage<T>;
-export function failure(data?: unknown) {
-  if (data === undefined) {
+export function failure<T>(message: T): FailureMessage<T>;
+export function failure(message?: unknown) {
+  if (message === undefined) {
     return { success: false };
   } else {
-    return { success: false, data };
+    return { success: false, message };
   }
 }
