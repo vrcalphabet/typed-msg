@@ -193,9 +193,13 @@ MIT License
 
 - 初回リリース
 
-### v1.1.0 (2026-02-08)
+### v2.0.0 (2026-02-08)
 
 - 成功時のメッセージレスポンス `SuccessMessageResponse` のプロパティを `message` から `data` に変更した
 - 失敗時のメッセージレスポンス `FailureMessageResponse` の `message` 型を変更/省略できるようにした
 - ハンドラー未定義時のエラーをより分かりやすくした
 - ユーティリティ関数 `success`, `failure` を追加した
+
+### v2.0.1 (2026-02-10)
+
+- `failure` 関数の戻り値のプロパティを `data` から `message` に修正した
