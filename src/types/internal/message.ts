@@ -1,9 +1,8 @@
-import { JsonValue } from '../utils/json';
 import { AsyncOrSync, SafeExtract } from '../utils/utils';
 
 export type MessageShape = {
-  req?: JsonValue;
-  res?: JsonValue;
+  req?: unknown;
+  res?: unknown;
 };
 
 export type ValidatedMessageDefinitions = Record<string, MessageShape>;
