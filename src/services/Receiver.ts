@@ -2,38 +2,38 @@ import {
   MessageHandler,
   MessageHandlers,
   ValidatedMessageDefinitions,
-} from '../types/internal/message';
+} from '../types/internal/message'
 
-type AnyHandler<T, K> = (name: keyof T & string, scope: K) => void;
+type AnyHandler<T, K> = (name: keyof T & string, scope: K) => void
 
 export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
-  private _handlers: MessageHandlers<T> = {};
-  private _anyHandlers: AnyHandler<T, K>[] = [];
+  private _handlers: MessageHandlers<T> = {}
+  private _anyHandlers: AnyHandler<T, K>[] = []
 
   constructor(private _scope: K) {
     chrome.runtime.onMessage.addListener((message, sender, sendMessage) => {
-      if (!this._typed(message)) return;
-      if (message.scope !== this._scope) return;
+      if (!this._typed(message)) return
+      if (message.scope !== this._scope) return
 
-      (async () => {
-        const handler = this._handlers[message.name];
+      ;(async () => {
+        const handler = this._handlers[message.name]
         if (!handler) {
-          sendMessage({ error: 'ハンドラーが未定義です。' });
-          return;
+          sendMessage({ error: 'ハンドラーが未定義です。' })
+          return
         }
 
-        const res = await Promise.resolve(handler(message.req, sender));
-        sendMessage({ res });
-      })();
+        const res = await Promise.resolve(handler(message.req, sender))
+        sendMessage({ res })
+      })()
 
       setTimeout(() => {
         this._anyHandlers.forEach((handler) => {
-          handler(message.name, _scope);
-        });
-      }, 0);
+          handler(message.name, _scope)
+        })
+      }, 0)
 
-      return true;
-    });
+      return true
+    })
   }
 
   /**
@@ -69,10 +69,10 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
     if (name in this._handlers) {
       throw new Error(
         `同じ名前のハンドラーは複数登録できません。（スコープ: "${this._scope}", 名前: "${name}）`,
-      );
+      )
     }
 
-    this._handlers[name] = handler;
+    this._handlers[name] = handler
   }
 
   /**
@@ -94,12 +94,12 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    * ```
    */
   onAny(handler: AnyHandler<T, K>) {
-    this._anyHandlers.push(handler);
+    this._anyHandlers.push(handler)
   }
 
   private _typed(
     message: any,
   ): message is { scope: string; name: string; req: any } {
-    return typeof message?.scope === 'string' && typeof message?.name === 'string';
+    return typeof message?.scope === 'string' && typeof message?.name === 'string'
   }
 }

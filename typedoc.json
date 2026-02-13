@@ -1,7 +1,5 @@
 {
-  "entryPoints": [
-    "src/main.ts",
-  ],
+  "entryPoints": ["src/main.ts"],
   "exclude": ["src/types/internal/*.ts"],
   "out": "docs",
   "name": "typed-msg API Documentation",

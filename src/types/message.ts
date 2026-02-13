@@ -1,7 +1,7 @@
 import {
   MergedMessageDefinitions,
   ValidatedMessageDefinitions,
-} from './internal/message';
+} from './internal/message'
 
 /**
  * 個別のメッセージ定義を作成するための型エイリアスです。
@@ -25,7 +25,7 @@ import {
  * }>;
  * ```
  */
-export type MessageDefinitions<T extends ValidatedMessageDefinitions> = T;
+export type MessageDefinitions<T extends ValidatedMessageDefinitions> = T
 
 /**
  * 複数のメッセージ定義をスコープごとに統合するための型エイリアスです。
@@ -50,7 +50,7 @@ export type MessageDefinitions<T extends ValidatedMessageDefinitions> = T;
  * const receiver = receive<Messages>('remote');
  * ```
  */
-export type MergeMessageDefinitions<T extends MergedMessageDefinitions> = T;
+export type MergeMessageDefinitions<T extends MergedMessageDefinitions> = T
 
 /**
  * メッセージハンドラーのレスポンス型で、成功か失敗かを表すユーティリティ型です。
@@ -74,7 +74,7 @@ export type MergeMessageDefinitions<T extends MergedMessageDefinitions> = T;
  */
 export type MessageResponse<T = void, K = string> =
   | SuccessMessageResponse<T>
-  | FailureMessageResponse<K>;
+  | FailureMessageResponse<K>
 
 /**
  * 成功時のレスポンス型です。
@@ -85,7 +85,7 @@ export type MessageResponse<T = void, K = string> =
  * @template T - 成功時に返すデータの型。省略時は `void` です。
  */
 export type SuccessMessageResponse<T = void> =
-  T extends void ? { success: true } : { success: true; data: T };
+  T extends void ? { success: true } : { success: true; data: T }
 
 /**
  * 失敗時のレスポンス型です。
@@ -101,4 +101,4 @@ export type SuccessMessageResponse<T = void> =
  * ```
  */
 export type FailureMessageResponse<T = string> =
-  T extends void ? { success: false } : { success: false; message: T };
+  T extends void ? { success: false } : { success: false; message: T }

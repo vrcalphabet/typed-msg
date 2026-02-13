@@ -1,11 +1,8 @@
-import { Receiver } from './services/Receiver';
-import {
-  MergedMessageDefinitions,
-  MessageInterface,
-} from './types/internal/message';
+import { Receiver } from './services/Receiver'
+import { MergedMessageDefinitions, MessageInterface } from './types/internal/message'
 
-export type * from './types/message';
-export * from './utils/response';
+export type * from './types/message'
+export * from './utils/response'
 
 export function createMessaging<T extends MergedMessageDefinitions>() {
   return {
@@ -32,17 +29,19 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
               chrome.runtime.sendMessage({ scope, name, req }, (message) => {
                 if (chrome.runtime.lastError) {
                   // SWへの接続不良やreceive()が未設定の場合
-                  console.error(chrome.runtime.lastError);
-                  reject(`ハンドラーが未定義の可能性があります。（スコープ: "${scope}", 名前: "${name}）`);
+                  console.error(chrome.runtime.lastError)
+                  reject(
+                    `ハンドラーが未定義の可能性があります。（スコープ: "${scope}", 名前: "${name}）`,
+                  )
                 } else if (message.error !== undefined) {
-                  reject(`${message.error}（スコープ: "${scope}", 名前: "${name}）`);
+                  reject(`${message.error}（スコープ: "${scope}", 名前: "${name}）`)
                 } else {
-                  resolve(message.res);
+                  resolve(message.res)
                 }
               }),
-            );
+            )
         },
-      });
+      })
     },
 
     /**
@@ -63,10 +62,8 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      * });
      * ```
      */
-    receive<K extends keyof T & string>(
-      scope: K,
-    ): Receiver<T[K], K> {
-      return new Receiver(scope);
+    receive<K extends keyof T & string>(scope: K): Receiver<T[K], K> {
+      return new Receiver(scope)
     },
-  };
+  }
 }
