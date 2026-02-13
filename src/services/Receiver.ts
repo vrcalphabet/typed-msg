@@ -8,7 +8,6 @@ type AnyHandler<T, K> = (name: keyof T & string, scope: K) => void
 
 export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
   private _handlers: MessageHandlers<T> = {}
-  private _anyHandlers: AnyHandler<T, K>[] = []
 
   constructor(private _scope: K) {
     chrome.runtime.onMessage.addListener((message, sender, sendMessage) => {
@@ -26,11 +25,6 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
         sendMessage({ res })
       })()
 
-      setTimeout(() => {
-        this._anyHandlers.forEach((handler) => {
-          handler(message.name, _scope)
-        })
-      }, 0)
 
       return true
     })
@@ -93,8 +87,6 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    * })
    * ```
    */
-  onAny(handler: AnyHandler<T, K>) {
-    this._anyHandlers.push(handler)
   }
 
   private _typed(
