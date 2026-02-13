@@ -50,19 +50,19 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    *
    * @example
    * ```ts
-   * const receiver = receive<Message>("remote");
+   * import { success, failure } from 'typed-msg'
    *
-   * receiver.on('addRepository', (req, sender) => {
-   *   console.log(req.url);
-   *   console.log(sender.tab?.id);
-   *   return { success: true };
-   * });
+   * const storageReceiver = receive('storage')
    *
-   * // 非同期のハンドラーも指定可能
-   * receiver.on('fetchData', async (req) => {
-   *   const data = await someAsyncOperation(req);
-   *   return { success: true, message: data };
-   * });
+   * storageReceiver.on('setSettings', async (req) => {
+   *   await chrome.storage.local.set({ settings: req })
+   *   return success()
+   * })
+   *
+   * storageReceiver.on('getSettings', async () => {
+   *   const data = await chrome.storage.local.get('settings')
+   *   return success(data.settings)
+   * })
    * ```
    */
   on<V extends keyof T & string>(name: V, handler: MessageHandler<T, V>) {
@@ -86,11 +86,11 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    *
    * @example
    * ```ts
-   * const receiver = receive<Message>("remote");
+   * const storageReceiver = receive('storage')
    *
-   * receiver.onAny((name, scope) => {
-   *   console.log(`メッセージ "${name}" をスコープ "${scope}" で受信しました`);
-   * });
+   * storageReceiver.onAny((name, scope) => {
+   *   console.log(`メッセージ "${name}" をスコープ "${scope}" で受信しました`)
+   * })
    * ```
    */
   onAny(handler: AnyHandler<T, K>) {

@@ -13,16 +13,15 @@ import {
  *
  * @example
  * ```ts
- * type RemoteMessages = MessageDefinitions<{
- *   addRepository: {
- *     req: { url: string };
- *     res: MessageResponse;
- *   };
- *   getRepository: {
- *     req: { id: number };
- *     res: MessageResponse<{ name: string; url: string }>;
- *   };
- * }>;
+ * type StorageMessages = MessageDefinitions<{
+ *   setSettings: {
+ *     req: { theme: 'light' | 'dark'; language: string }
+ *     res: MessageResponse
+ *   }
+ *   getSettings: {
+ *     res: MessageResponse<{ theme: 'light' | 'dark'; language: string }>
+ *   }
+ * }>
  * ```
  */
 export type MessageDefinitions<T extends ValidatedMessageDefinitions> = T
@@ -37,17 +36,15 @@ export type MessageDefinitions<T extends ValidatedMessageDefinitions> = T
  *
  * @example
  * ```ts
- * type RemoteMessages = MessageDefinitions<{ ... }>;
- * type BackgroundMessages = MessageDefinitions<{ ... }>;
+ * type StorageMessages = MessageDefinitions<{ ... }>
+ * type TabMessages = MessageDefinitions<{ ... }>
  *
  * type Messages = MergeMessageDefinitions<{
- *   remote: RemoteMessages;
- *   background: BackgroundMessages;
- * }>;
+ *   storage: StorageMessages
+ *   tabs: TabMessages
+ * }>
  *
- * // 使用時:
- * const sender = connect<Messages>('remote');
- * const receiver = receive<Messages>('remote');
+ * const { connect, receive } = createMessaging<Messages>()
  * ```
  */
 export type MergeMessageDefinitions<T extends MergedMessageDefinitions> = T
@@ -64,12 +61,12 @@ export type MergeMessageDefinitions<T extends MergedMessageDefinitions> = T
  * @example
  * ```ts
  * // データなしの成功レスポンス
- * type SimpleRes = MessageResponse;
+ * MessageResponse
  * // { success: true } | { success: false, message: string }
  *
  * // データありの成功レスポンス
- * type DataRes = MessageResponse<User>;
- * // { success: true, message: User } | { success: false, message: string }
+ * MessageResponse<{ theme: string; language: string }>
+ * // { success: true, data: { theme: string; language: string } } | { success: false, message: string }
  * ```
  */
 export type MessageResponse<T = void, K = string> =
@@ -79,8 +76,10 @@ export type MessageResponse<T = void, K = string> =
 /**
  * 成功時のレスポンス型です。
  *
+ * データを `data` に格納して返します。
+ *
  * - `T` が `void` の場合: `{ success: true }`
- * - `T` が `void` 以外の場合: `{ success: true, message: T }`
+ * - `T` が `void` 以外の場合: `{ success: true, data: T }`
  *
  * @template T - 成功時に返すデータの型。省略時は `void` です。
  */
@@ -92,13 +91,10 @@ export type SuccessMessageResponse<T = void> =
  *
  * エラーメッセージを `message` に格納して返します。
  *
- * @example
- * ```ts
- * const errorResponse: FailureMessageResponse = {
- *   success: false,
- *   message: 'リポジトリが見つかりません',
- * };
- * ```
+ * - `T` が `void` の場合: `{ success: false }`
+ * - `T` が `void` 以外の場合: `{ success: true, message: T }`
+ *
+ * @template T - 失敗時に返すメッセージの型。省略時は `string` です。
  */
 export type FailureMessageResponse<T = string> =
   T extends void ? { success: false } : { success: false; message: T }

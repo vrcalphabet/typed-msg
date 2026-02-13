@@ -4,6 +4,33 @@ import { MergedMessageDefinitions, MessageInterface } from './types/internal/mes
 export type * from './types/message'
 export * from './utils/response'
 
+/**
+ * 型付きメッセージングインターフェースを生成するファクトリ関数です。
+ *
+ * `MergeMessageDefinitions` で統合した型を型引数に渡すことで、
+ * `connect`（送信）と `receive`（受信）からなるオブジェクトを取得できます。
+ *
+ * @template T - `MergeMessageDefinitions` で作成した統合メッセージ定義型
+ * @returns `connect` と `receive` を持つオブジェクト
+ *
+ * @example
+ * ```ts
+ * import { type MessageDefinitions, type MergeMessageDefinitions, createMessaging } from 'typed-msg'
+ *
+ * type StorageMessages = MessageDefinitions<{
+ *   setSettings: {
+ *     req: { theme: 'light' | 'dark'; language: string }
+ *     res: MessageResponse
+ *   }
+ * }>
+ *
+ * type Messages = MergeMessageDefinitions<{
+ *   storage: StorageMessages
+ * }>
+ *
+ * export const { connect, receive } = createMessaging<Messages>()
+ * ```
+ */
 export function createMessaging<T extends MergedMessageDefinitions>() {
   return {
     /**
@@ -15,10 +42,16 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      *
      * @example
      * ```ts
-     * type Messages = MergeMessageDefinitions<{ remote: RemoteMessages }>;
+     * const storage = connect('storage')
      *
-     * const sender = connect<Messages>('remote');
-     * const result = await sender.addRepository({ url: 'https://...' });
+     * // req ありのメッセージ
+     * const saveResult = await storage.setSettings({ theme: 'dark', language: 'ja' })
+     *
+     * // req なしのメッセージ
+     * const settingsResult = await storage.getSettings()
+     * if (settingsResult.success) {
+     *   console.log(settingsResult.data.theme)
+     * }
      * ```
      */
     connect<K extends keyof T & string>(scope: K): MessageInterface<T[K]> {
@@ -53,13 +86,19 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      *
      * @example
      * ```ts
-     * type Messages = MergeMessageDefinitions<{ remote: RemoteMessages }>;
+     * import { success, failure } from 'typed-msg'
      *
-     * const receiver = receive<Messages>('remote');
-     * receiver.on('addRepository', (req, sender) => {
-     *   console.log(req.url);
-     *   return { success: true };
-     * });
+     * const storageReceiver = receive('storage')
+     *
+     * storageReceiver.on('setSettings', async (req) => {
+     *   await chrome.storage.local.set({ settings: req })
+     *   return success()
+     * })
+     *
+     * storageReceiver.on('getSettings', async () => {
+     *   const data = await chrome.storage.local.get('settings')
+     *   return success(data.settings)
+     * })
      * ```
      */
     receive<K extends keyof T & string>(scope: K): Receiver<T[K], K> {
