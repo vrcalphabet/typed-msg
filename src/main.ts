@@ -64,10 +64,10 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
                   // SWへの接続不良やreceive()が未設定の場合
                   console.error(chrome.runtime.lastError)
                   reject(
-                    `ハンドラーが未定義の可能性があります。（スコープ: "${scope}", 名前: "${name}）`,
+                    `ハンドラーが未定義の可能性があります。（スコープ: "${scope}", 名前: "${name}"）`,
                   )
                 } else if (message.error !== undefined) {
-                  reject(`${message.error}（スコープ: "${scope}", 名前: "${name}）`)
+                  reject(`${message.error}（スコープ: "${scope}", 名前: "${name}"）`)
                 } else {
                   resolve(message.res)
                 }
