@@ -26,41 +26,41 @@ import {
   type MergeMessageDefinitions,
   type MessageResponse,
   createMessaging,
-} from 'typed-msg';
+} from 'typed-msg'
 
 // ストレージ関連のメッセージ
 type StorageMessages = MessageDefinitions<{
   // 設定を保存
   setSettings: {
-    req: { theme: 'light' | 'dark'; language: string };
-    res: MessageResponse;
-  };
+    req: { theme: 'light' | 'dark'; language: string }
+    res: MessageResponse
+  }
   // 設定を取得
   getSettings: {
-    res: MessageResponse<{ theme: 'light' | 'dark'; language: string }>;
-  };
-}>;
+    res: MessageResponse<{ theme: 'light' | 'dark'; language: string }>
+  }
+}>
 
 // タブ関連のメッセージ
 type TabMessages = MessageDefinitions<{
   // 現在のタブ情報を取得
   getCurrentTab: {
-    res: MessageResponse<{ id: number; url: string; title: string }>;
-  };
+    res: MessageResponse<{ id: number; url: string; title: string }>
+  }
   // 新しいタブを開く
   openTab: {
-    req: { url: string };
-    res: MessageResponse<{ tabId: number }>;
-  };
-}>;
+    req: { url: string }
+    res: MessageResponse<{ tabId: number }>
+  }
+}>
 
 // すべてのスコープを統合
 type Messages = MergeMessageDefinitions<{
-  storage: StorageMessages;
-  tabs: TabMessages;
-}>;
+  storage: StorageMessages
+  tabs: TabMessages
+}>
 
-export const { connect, receive } = createMessaging<Messages>();
+export const { connect, receive } = createMessaging<Messages>()
 ```
 
 ### 2. 受信側（Service Worker）
@@ -72,40 +72,40 @@ export const { connect, receive } = createMessaging<Messages>();
 
 ```ts
 // background.ts
-import { receive, type Messages } from './types/messages';
-import { success, failure } from 'typed-msg';
+import { receive, type Messages } from './types/messages'
+import { success, failure } from 'typed-msg'
 
 // ストレージ関連のハンドラー
-const storageReceiver = receive('storage');
+const storageReceiver = receive('storage')
 
 storageReceiver.on('setSettings', async (req) => {
-  await chrome.storage.local.set({ settings: req });
-  return success();
-});
+  await chrome.storage.local.set({ settings: req })
+  return success()
+})
 
 storageReceiver.on('getSettings', async () => {
-  const data = await chrome.storage.local.get('settings');
-  return success(data.settings);
-});
+  const data = await chrome.storage.local.get('settings')
+  return success(data.settings)
+})
 
 // タブ関連のハンドラー
-const tabsReceiver = receive('tabs');
+const tabsReceiver = receive('tabs')
 
 tabsReceiver.on('getCurrentTab', async (_, sender) => {
-  const tab = sender.tab;
+  const tab = sender.tab
   if (!tab?.id || !tab.url || !tab.title) {
-    return failure('タブ情報を取得できませんでした');
+    return failure('タブ情報を取得できませんでした')
   }
-  return success({ id: tab.id, url: tab.url, title: tab.title });
-});
+  return success({ id: tab.id, url: tab.url, title: tab.title })
+})
 
 tabsReceiver.on('openTab', async (req) => {
-  const tab = await chrome.tabs.create({ url: req.url });
+  const tab = await chrome.tabs.create({ url: req.url })
   if (!tab.id) {
-    return failure('タブを開けませんでした');
+    return failure('タブを開けませんでした')
   }
-  return success({ tabId: tab.id });
-});
+  return success({ tabId: tab.id })
+})
 ```
 
 ### 3. 送信側（Content Scripts）
@@ -119,56 +119,46 @@ tabsReceiver.on('openTab', async (req) => {
 
 ```ts
 // content.ts
-import { connect, type Messages } from './types/messages';
+import { connect, type Messages } from './types/messages'
 
 // スコープごとに送信インターフェースを作成
-const storage = connect('storage');
-const tabs = connect('tabs');
+const storage = connect('storage')
+const tabs = connect('tabs')
 
 // 設定を保存
-const saveResult = await storage.setSettings({ theme: 'dark', language: 'ja' });
+const saveResult = await storage.setSettings({ theme: 'dark', language: 'ja' })
 if (saveResult.success) {
-  console.log('設定を保存しました');
+  console.log('設定を保存しました')
 }
 
 // 設定を取得
-const settingsResult = await storage.getSettings();
+const settingsResult = await storage.getSettings()
 if (settingsResult.success) {
-  console.log('テーマ:', settingsResult.data.theme);
-  console.log('言語:', settingsResult.data.language);
+  console.log('テーマ:', settingsResult.data.theme)
+  console.log('言語:', settingsResult.data.language)
 }
 
 // 現在のタブ情報を取得
-const tabResult = await tabs.getCurrentTab();
+const tabResult = await tabs.getCurrentTab()
 if (tabResult.success) {
-  console.log('タブID:', tabResult.data.id);
-  console.log('URL:', tabResult.data.url);
+  console.log('タブID:', tabResult.data.id)
+  console.log('URL:', tabResult.data.url)
 }
 
 // 新しいタブを開く
-const openResult = await tabs.openTab({ url: 'https://example.com' });
+const openResult = await tabs.openTab({ url: 'https://example.com' })
 if (openResult.success) {
-  console.log('新しいタブを開きました:', openResult.data.tabId);
+  console.log('新しいタブを開きました:', openResult.data.tabId)
 }
 ```
 
 ## インストール
 
-### npm
-
 ```bash
 npm install typed-msg
-```
-
-### yarn
-
-```bash
+# or
 yarn add typed-msg
-```
-
-### pnpm
-
-```bash
+# or
 pnpm add typed-msg
 ```
 
@@ -195,11 +185,15 @@ MIT License
 
 ### v2.0.0 (2026-02-08)
 
-- 成功時のメッセージレスポンス `SuccessMessageResponse` のプロパティを `message` から `data` に変更した
-- 失敗時のメッセージレスポンス `FailureMessageResponse` の `message` 型を変更/省略できるようにした
-- ハンドラー未定義時のエラーをより分かりやすくした
-- ユーティリティ関数 `success`, `failure` を追加した
+- 成功時のメッセージレスポンス `SuccessMessageResponse` のプロパティを `message` から `data` に変更
+- 失敗時のメッセージレスポンス `FailureMessageResponse` の `message` 型を変更/省略
+- ハンドラー未定義時のエラーをより分かりやすく
+- ユーティリティ関数 `success`, `failure` を追加
 
 ### v2.0.1 (2026-02-10)
 
-- `failure` 関数の戻り値のプロパティを `data` から `message` に修正した
+- `failure` 関数の戻り値のプロパティを `data` から `message` に修正
+
+### v2.1.0 (2026-02-13)
+
+- `onAny` メソッドを追加
