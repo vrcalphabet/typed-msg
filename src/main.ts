@@ -3,7 +3,6 @@ import {
   MergedMessageDefinitions,
   MessageInterface,
 } from './types/internal/message';
-import { stringifyMessage } from './utils/message';
 
 export type * from './types/message';
 export * from './utils/response';
@@ -30,14 +29,15 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
         get(_, name: string) {
           return (req: unknown) =>
             new Promise((resolve, reject) =>
-              chrome.runtime.sendMessage({ scope, name, req }, (res) => {
+              chrome.runtime.sendMessage({ scope, name, req }, (message) => {
                 if (chrome.runtime.lastError) {
-                  reject({
-                    message: `ハンドラーが未定義の可能性があります。${stringifyMessage(scope, name)}`,
-                    error: chrome.runtime.lastError,
-                  });
+                  // SWへの接続不良やreceive()が未設定の場合
+                  console.error(chrome.runtime.lastError);
+                  reject(`ハンドラーが未定義の可能性があります。（スコープ: "${scope}", 名前: "${name}）`);
+                } else if (message.error !== undefined) {
+                  reject(`${message.error}（スコープ: "${scope}", 名前: "${name}）`);
                 } else {
-                  resolve(res);
+                  resolve(message.res);
                 }
               }),
             );
@@ -65,7 +65,7 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      */
     receive<K extends keyof T & string>(
       scope: K,
-    ): Receiver<T, K> {
+    ): Receiver<T[K], K> {
       return new Receiver(scope);
     },
   };

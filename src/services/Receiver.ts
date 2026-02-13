@@ -1,32 +1,36 @@
 import {
-  MergedMessageDefinitions,
   MessageHandler,
   MessageHandlers,
+  ValidatedMessageDefinitions,
 } from '../types/internal/message';
-import { stringifyMessage } from '../utils/message';
 
-export class Receiver<
-  T extends MergedMessageDefinitions,
-  K extends keyof T & string,
-> {
-  private handlers: MessageHandlers<T[K]> = {};
+type AnyHandler<T, K> = (name: keyof T & string, scope: K) => void;
 
-  constructor(private scope: K) {
+export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
+  private _handlers: MessageHandlers<T> = {};
+  private _anyHandlers: AnyHandler<T, K>[] = [];
+
+  constructor(private _scope: K) {
     chrome.runtime.onMessage.addListener((message, sender, sendMessage) => {
       if (!this._typed(message)) return;
-      if (message.scope !== this.scope) return;
+      if (message.scope !== this._scope) return;
 
       (async () => {
-        const handler = this.handlers[message.name];
+        const handler = this._handlers[message.name];
         if (!handler) {
-          throw new Error(
-            `ハンドラーが未定義です。${stringifyMessage(this.scope, message.name)}`,
-          );
+          sendMessage({ error: 'ハンドラーが未定義です。' });
+          return;
         }
 
         const res = await Promise.resolve(handler(message.req, sender));
-        sendMessage(res);
+        sendMessage({ res });
       })();
+
+      setTimeout(() => {
+        this._anyHandlers.forEach((handler) => {
+          handler(message.name, _scope);
+        });
+      }, 0);
 
       return true;
     });
@@ -61,14 +65,36 @@ export class Receiver<
    * });
    * ```
    */
-  on<V extends keyof T[K] & string>(name: V, handler: MessageHandler<T[K], V>) {
-    if (name in this.handlers) {
+  on<V extends keyof T & string>(name: V, handler: MessageHandler<T, V>) {
+    if (name in this._handlers) {
       throw new Error(
-        `ハンドラーは複数登録できません。${stringifyMessage(this.scope, name)}`,
+        `同じ名前のハンドラーは複数登録できません。（スコープ: "${this._scope}", 名前: "${name}）`,
       );
     }
 
-    this.handlers[name] = handler;
+    this._handlers[name] = handler;
+  }
+
+  /**
+   * メッセージ名に関係なく、すべてのメッセージを受け取る any ハンドラーを登録します。
+   *
+   * 複数の any ハンドラーを登録でき、登録順に実行されます。
+   *
+   * @param handler - すべてのメッセージを処理するコールバック関数。引数は以下の通りです:
+   *   - `name`: 受信したメッセージの名前
+   *   - `scope`: このレシーバーのスコープ名
+   *
+   * @example
+   * ```ts
+   * const receiver = receive<Message>("remote");
+   *
+   * receiver.onAny((name, scope) => {
+   *   console.log(`メッセージ "${name}" をスコープ "${scope}" で受信しました`);
+   * });
+   * ```
+   */
+  onAny(handler: AnyHandler<T, K>) {
+    this._anyHandlers.push(handler);
   }
 
   private _typed(
