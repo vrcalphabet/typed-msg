@@ -16,13 +16,13 @@
   "author": "vrcalphabet",
   "license": "MIT",
   "type": "module",
-  "homepage": "https://github.com/vrcalphabet/web-fs",
+  "homepage": "https://github.com/vrcalphabet/typed-msg",
   "bugs": {
-    "url": "https://github.com/vrcalphabet/web-fs/issues"
+    "url": "https://github.com/vrcalphabet/typed-msg/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vrcalphabet/web-fs.git"
+    "url": "git+https://github.com/vrcalphabet/typed-msg.git"
   },
   "keywords": [
     "web-extension",
