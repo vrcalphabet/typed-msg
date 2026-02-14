@@ -16,6 +16,28 @@
   "author": "vrcalphabet",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/vrcalphabet/web-fs",
+  "bugs": {
+    "url": "https://github.com/vrcalphabet/web-fs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vrcalphabet/web-fs.git"
+  },
+  "keywords": [
+    "web-extension",
+    "browser-extension",
+    "chrome-extension",
+    "webext",
+    "web-ext",
+    "chrome",
+    "firefox",
+    "safari",
+    "browser",
+    "extension",
+    "content",
+    "script"
+  ],
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/chrome": "^0.1.36",
