@@ -1,6 +1,6 @@
 {
   "name": "typed-msg",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "Chrome拡張機能のSW⇔Content Scripts間の通信を型安全にするライブラリ",
   "files": [
     "dist"
