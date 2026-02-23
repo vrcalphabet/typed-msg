@@ -5,24 +5,24 @@ import {
 } from '../types/internal/message'
 import { UnknownToUndefined } from '../types/utils/utils'
 
-type AnyBeforeHandler<T extends ValidatedMessageDefinitions, K extends string> = (
-  name: keyof T & string,
-  scope: K,
-) => void
+type AnyBeforeHandler<
+  T extends ValidatedMessageDefinitions,
+  K extends string,
+> = (context: { scope: K; name: keyof T & string }) => void
 
 type AnyAfterHandlerArgs<T extends ValidatedMessageDefinitions, K extends string> = {
-  [N in keyof T & string]: [
-    name: N,
+  [N in keyof T & string]: {
+    scope: K
+    name: N
     message: {
       req: UnknownToUndefined<T[N]['req']>
       res: UnknownToUndefined<T[N]['res']>
-    },
-    scope: K,
-  ]
+    }
+  }
 }[keyof T & string]
 
 type AnyAfterHandler<T extends ValidatedMessageDefinitions, K extends string> = (
-  ...args: AnyAfterHandlerArgs<T, K>
+  context: AnyAfterHandlerArgs<T, K>,
 ) => void
 
 export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
@@ -42,7 +42,7 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
         }
 
         this._anyBeforeHandlers.forEach((beforeHandler) => {
-          beforeHandler(message.name, _scope)
+          beforeHandler({ name: message.name, scope: _scope })
         })
 
         const res = await Promise.resolve(handler(message.req, sender))
@@ -50,8 +50,12 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
 
         setTimeout(() => {
           this._anyAfterHandlers.forEach((afterHandler) => {
-            // req, res が省略された型でもエラーが出ないように any
-            afterHandler(message.name, { req: message.req, res } as any, _scope)
+            afterHandler({
+              scope: _scope,
+              name: message.name,
+              // req, res が省略された型でもエラーが出ないように any
+              message: { req: message.req, res } as any,
+            })
           })
         }, 0)
       })()
@@ -105,14 +109,14 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    * メインハンドラが**実行される前に**、登録順に実行されます。そのため、特別な場合を除き重い処理をしてはいけません。
    *
    * @param handler - すべてのメッセージを処理するコールバック関数。引数は以下の通りです:
-   *   - `name`: 受信したメッセージの名前
-   *   - `scope`: このレシーバーのスコープ名
+   *   - `context.name`: 受信したメッセージの名前
+   *   - `context.scope`: このレシーバーのスコープ名
    *
    * @example
    * ```ts
    * const storageReceiver = receive('storage')
    *
-   * storageReceiver.onAnyBefore((name, scope) => {
+   * storageReceiver.onAnyBefore(({ name, scope }) => {
    *   console.log(`[${scope}] ${name} を受信しました`)
    * })
    * ```
@@ -127,15 +131,15 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    * メインハンドラが**実行され、レスポンスを返した後に**、登録順に実行されます。
    *
    * @param handler - すべてのメッセージを処理するコールバック関数。引数は以下の通りです:
-   *   - `name`: 受信したメッセージの名前
-   *   - `message`: リクエスト（`req`）とレスポンス（`res`）を含むオブジェクト
-   *   - `scope`: このレシーバーのスコープ名
+   *   - `context.name`: 受信したメッセージの名前
+   *   - `context.message`: リクエスト（`req`）とレスポンス（`res`）を含むオブジェクト
+   *   - `context.scope`: このレシーバーのスコープ名
    *
    * @example
    * ```ts
    * const storageReceiver = receive('storage')
    *
-   * storageReceiver.onAnyAfter((name, message, scope) => {
+   * storageReceiver.onAnyAfter(({ name, message, scope }) => {
    *   // name で分岐すると message の型が絞り込まれる
    *   if (name === 'setSettings') {
    *     console.log(message.req) // { theme: 'light' | 'dark'; language: string }
