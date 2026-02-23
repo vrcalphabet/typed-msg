@@ -16,7 +16,7 @@ type AnyAfterHandlerArgs<T extends ValidatedMessageDefinitions, K extends string
     name: N
     message: {
       req: UnknownToUndefined<T[N]['req']>
-      res: UnknownToUndefined<T[N]['res']>
+      res: T[N]['res']
     }
   }
 }[keyof T & string]
@@ -53,8 +53,7 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
             afterHandler({
               scope: _scope,
               name: message.name,
-              // req, res が省略された型でもエラーが出ないように any
-              message: { req: message.req, res } as any,
+              message: { req: message.req, res },
             })
           })
         }, 0)

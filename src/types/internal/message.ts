@@ -1,8 +1,9 @@
+import { MessageResponse } from '../message'
 import { AsyncOrSync, SafeExtract } from '../utils/utils'
 
 export type MessageShape = {
   req?: unknown
-  res?: unknown
+  res: unknown
 }
 
 export type ValidatedMessageDefinitions = Record<string, MessageShape>
@@ -11,7 +12,7 @@ export type MergedMessageDefinitions = Record<string, ValidatedMessageDefinition
 
 export type MessageInterface<T extends ValidatedMessageDefinitions> = {
   [K in keyof T]: T[K] extends MessageShape ?
-    (req: SafeExtract<T[K], 'req'>) => Promise<SafeExtract<T[K], 'res'>>
+    (req: SafeExtract<T[K], 'req'>) => Promise<MessageResponse<T[K]["res"]>>
   : never
 }
 
@@ -20,7 +21,7 @@ export type MessageHandler<T extends ValidatedMessageDefinitions, K extends stri
     (
       req: SafeExtract<T[K], 'req'>,
       sender: chrome.runtime.MessageSender,
-    ) => AsyncOrSync<SafeExtract<T[K], 'res'>>
+    ) => AsyncOrSync<MessageResponse<T[K]["res"]>>
   : never
 
 export type MessageHandlers<T extends ValidatedMessageDefinitions> = {
