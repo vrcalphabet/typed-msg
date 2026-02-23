@@ -42,7 +42,7 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      *
      * @example
      * ```ts
-     * const storage = connect('storage')
+     * const storage = sender('storage')
      *
      * // req ありのメッセージ
      * const saveResult = await storage.setSettings({ theme: 'dark', language: 'ja' })
@@ -54,7 +54,7 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      * }
      * ```
      */
-    connect<K extends keyof T & string>(scope: K): MessageInterface<T[K]> {
+    sender<K extends keyof T & string>(scope: K): MessageInterface<T[K]> {
       return new Proxy({} as MessageInterface<T[K]>, {
         get(_, name: string) {
           return (req: unknown) =>
