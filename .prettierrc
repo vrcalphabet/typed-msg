@@ -3,6 +3,6 @@
   "semi": false,
   "printWidth": 85,
   "checkIgnorePragma": true,
-  "experimentalTernaries": true,
+  "experimentalTernaries": false,
   "plugins": ["@trivago/prettier-plugin-sort-imports"]
 }
