@@ -11,7 +11,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "format": "prettier --write \"src/**/*.ts\" --log-level warn",
-    "docs": "npx typedoc"
+    "docs": "npx typedoc",
+    "prepublish": "npm run format && npm run build && npm run docs && npm login"
   },
   "author": "vrcalphabet",
   "license": "MIT",
