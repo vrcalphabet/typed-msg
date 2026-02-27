@@ -6,6 +6,8 @@
 
 TypeScriptで書かれた、Chrome拡張機能のSW⇔Content Scripts間の通信を型安全にするラッパーライブラリです。
 
+サンプルプロジェクトは [こちら](https://github.com/vrcalphabet/typed-msg-example) にあります。
+
 ## 例
 
 この例では、ストレージ操作とタブ操作の2つのスコープを持つメッセージインタフェイスを定義します。
