@@ -1,44 +1,61 @@
+import { MessagingError } from './errors/MessagingError'
 import { Receiver } from './services/Receiver'
-import { MergedMessageDefinitions, MessageInterface } from './types/internal/message'
+import { MergedMessageDefs } from './types/internal/message'
+import { MessageInterface, MessagingOptions } from './types/message'
+import { failure } from './utils'
+import { Failure } from './utils/Failure'
 
 export type * from './types/message'
-export * from './utils/response'
+export type { MergedMessageDefs, MessageDefs } from './types/internal/message'
+export type { AsyncOrSync } from './types/utils'
+export * from './utils'
+export { MessagingError } from './errors/MessagingError'
+export { Receiver } from './services/Receiver'
 
 /**
  * 型付きメッセージングインターフェースを生成するファクトリ関数です。
  *
- * `MergeMessageDefinitions` で統合した型を型引数に渡すことで、
- * `connect`（送信）と `receive`（受信）からなるオブジェクトを取得できます。
+ * `MergeMessageDefs` で統合した型を型引数に渡すことで、
+ * `sender`（送信）と `receive`（受信）からなるオブジェクトを取得できます。
  *
- * @template T - `MergeMessageDefinitions` で作成した統合メッセージ定義型
- * @returns `connect` と `receive` を持つオブジェクト
+ * @template TMergedDefs - `MergeMessageDefs` で作成した統合メッセージ定義型
+ * @param options - オプション設定。
+ * @returns `sender` と `receive` を持つオブジェクト
  *
  * @example
  * ```ts
- * import { type MessageDefinitions, type MergeMessageDefinitions, createMessaging } from 'typed-msg'
+ * import { type MergeMessageDefs, createMessaging } from 'typed-msg'
  *
- * type StorageMessages = MessageDefinitions<{
+ * type StorageMessages = {
  *   setSettings: {
  *     req: { theme: 'light' | 'dark'; language: string }
- *     res: MessageResponse
+ *     res: void
  *   }
- * }>
+ * }
  *
- * type Messages = MergeMessageDefinitions<{
+ * type Messages = MergeMessageDefs<{
  *   storage: StorageMessages
  * }>
  *
- * export const { connect, receive } = createMessaging<Messages>()
+ * export const { sender, receive } = createMessaging<Messages>()
  * ```
  */
-export function createMessaging<T extends MergedMessageDefinitions>() {
+export function createMessaging<TMergedDefs extends MergedMessageDefs>(
+  options: MessagingOptions<TMergedDefs> = {},
+) {
   return {
     /**
-     * メッセージリスナーとの通信を行うための送信用インターフェースを作成します。
+     * メッセージの送信用インターフェースを作成します。
      *
-     * @template T - メッセージ定義の型。`MergeMessageDefinitions` で作成した型を指定します。
+     * 返される Proxy オブジェクトでは、定義したメッセージ名をメソッドとして呼び出せます。
+     * 各メソッドは `req` を引数に取り、`Promise<res>` を返します。
+     *
+     * 通信エラーが発生した場合:
+     * - `options.onError` が `Failure` を返す -> その `Failure` で resolve
+     * - それ以外 -> {@link MessagingError} をスロー
+     *
      * @param scope - メッセージのスコープ名。受信側（`receive`）と一致させる必要があります。
-     * @returns メッセージ送信用のProxyオブジェクト。定義したメッセージ名をメソッドとして呼び出せます。
+     * @returns メッセージ送信用の Proxy オブジェクト
      *
      * @example
      * ```ts
@@ -49,30 +66,33 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      *
      * // req なしのメッセージ
      * const settingsResult = await storage.getSettings()
-     * if (settingsResult.success) {
-     *   console.log(settingsResult.data.theme)
+     * if (settingsResult instanceof Success) {
+     *   console.log(settingsResult.theme)
      * }
      * ```
      */
-    sender<K extends keyof T & string>(scope: K): MessageInterface<T[K]> {
-      return new Proxy({} as MessageInterface<T[K]>, {
+    sender<TScope extends keyof TMergedDefs & string>(
+      scope: TScope,
+    ): MessageInterface<TMergedDefs[TScope]> {
+      return new Proxy({} as MessageInterface<TMergedDefs[TScope]>, {
         get(_, name: string) {
-          return (req: unknown) =>
-            new Promise((resolve, reject) =>
-              chrome.runtime.sendMessage({ scope, name, req }, (message) => {
-                if (chrome.runtime.lastError) {
-                  // SWへの接続不良やreceive()が未設定の場合
-                  console.error(chrome.runtime.lastError)
-                  reject(
-                    `ハンドラーが未定義の可能性があります。（スコープ: "${scope}", 名前: "${name}"）`,
-                  )
-                } else if (message.error !== undefined) {
-                  reject(`${message.error}（スコープ: "${scope}", 名前: "${name}"）`)
-                } else {
-                  resolve(message.res)
-                }
-              }),
-            )
+          return async (req: unknown) => {
+            try {
+              const message = await chrome.runtime.sendMessage({ scope, name, req })
+              if (message.error) throw message.error
+
+              // シリアライズされた失敗レスポンスを再構築
+              return message.success ? message.data : failure(message.data)
+            } catch (e) {
+              // SWへの接続不良やreceive()が未設定の場合
+              const errorMessage = e instanceof Error ? e.message : String(e)
+              const error = new MessagingError(scope, name, errorMessage)
+              const result = options.onError?.(error)
+
+              if (result instanceof Failure) return result
+              throw error
+            }
+          }
         },
       })
     },
@@ -80,9 +100,8 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
     /**
      * メッセージを受信するためのレシーバーを作成します。
      *
-     * @template T - メッセージ定義の型。`MergeMessageDefinitions` で作成した型を指定します。
-     * @param scope - 受信するメッセージのスコープ名。送信側（`connect`）と一致させる必要があります。
-     * @returns メッセージハンドラーを登録するための `Receiver` インスタンスです。
+     * @param scope - 受信するメッセージのスコープ名。送信側（`sender`）と一致させる必要があります。
+     * @returns メッセージハンドラーを登録するための {@link Receiver} インスタンス
      *
      * @example
      * ```ts
@@ -101,8 +120,10 @@ export function createMessaging<T extends MergedMessageDefinitions>() {
      * })
      * ```
      */
-    receive<K extends keyof T & string>(scope: K): Receiver<T[K], K> {
-      return new Receiver(scope)
+    receive<TScope extends keyof TMergedDefs & string>(
+      scope: TScope,
+    ): Receiver<TMergedDefs[TScope], TScope> {
+      return new Receiver(scope, options)
     },
   }
 }

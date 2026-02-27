@@ -1,62 +1,68 @@
-import {
-  MessageHandler,
-  MessageHandlers,
-  ValidatedMessageDefinitions,
-} from '../types/internal/message'
-import { UnknownToUndefined } from '../types/utils/utils'
+import { MessageDefs } from '../types/internal/message'
+import { MessageHandler, MessageHandlers, MessagingOptions } from '../types/message'
+import { Failure } from '../utils/Failure'
 
-type AnyBeforeHandler<
-  T extends ValidatedMessageDefinitions,
-  K extends string,
-> = (context: { scope: K; name: keyof T & string }) => void
+/**
+ * メッセージを受信してハンドラーで処理するクラスです。
+ *
+ * `createMessaging` から返される `receive` 関数で生成します。
+ * 直接インスタンス化せず、`receive(scope)` を使用してください。
+ *
+ * @example
+ * ```ts
+ * const storageReceiver = receive('storage')
+ *
+ * storageReceiver.on('setSettings', async (req) => {
+ *   await chrome.storage.local.set({ settings: req })
+ *   return success()
+ * })
+ * ```
+ */
+export class Receiver<TDefs extends MessageDefs, TScope extends string> {
+  private _handlers: MessageHandlers<TDefs> = {}
 
-type AnyAfterHandlerArgs<T extends ValidatedMessageDefinitions, K extends string> = {
-  [N in keyof T & string]: {
-    scope: K
-    name: N
-    message: {
-      req: UnknownToUndefined<T[N]['req']>
-      res: T[N]['res']
-    }
-  }
-}[keyof T & string]
-
-type AnyAfterHandler<T extends ValidatedMessageDefinitions, K extends string> = (
-  context: AnyAfterHandlerArgs<T, K>,
-) => void
-
-export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
-  private _handlers: MessageHandlers<T> = {}
-  private _anyBeforeHandlers: AnyBeforeHandler<T, K>[] = []
-  private _anyAfterHandlers: AnyAfterHandler<T, K>[] = []
-
-  constructor(private _scope: K) {
+  constructor(
+    private _scope: TScope,
+    options: MessagingOptions<any>,
+  ) {
     chrome.runtime.onMessage.addListener((message, sender, sendMessage) => {
       if (!this._typed(message)) return
       if (message.scope !== this._scope) return
+      const { scope, name, req } = message
+
+      const handler = this._handlers[name]
+      if (!handler) {
+        sendMessage({ error: 'ハンドラーが未定義です。' })
+        return
+      }
+
+      try {
+        options.onRequest?.({ scope, name, req })
+      } catch (e) {
+        console.error(e)
+      }
+
       ;(async () => {
-        const handler = this._handlers[message.name]
-        if (!handler) {
-          sendMessage({ error: 'ハンドラーが未定義です。' })
+        let res
+        try {
+          res = await Promise.resolve(handler(req, sender))
+        } catch (e) {
+          // handler でエラーが発生した場合
+          sendMessage({ error: e instanceof Error ? e.message : String(e) })
           return
         }
 
-        this._anyBeforeHandlers.forEach((beforeHandler) => {
-          beforeHandler({ name: message.name, scope: _scope })
+        try {
+          options.onResponse?.({ scope, name, req, res })
+        } catch (e) {
+          console.error(e)
+        }
+
+        // Failure はシリアライズできないので一旦バラす
+        sendMessage({
+          success: !(res instanceof Failure),
+          data: res instanceof Failure ? res.message : res,
         })
-
-        const res = await Promise.resolve(handler(message.req, sender))
-        sendMessage({ res })
-
-        setTimeout(() => {
-          this._anyAfterHandlers.forEach((afterHandler) => {
-            afterHandler({
-              scope: _scope,
-              name: message.name,
-              message: { req: message.req, res },
-            })
-          })
-        }, 0)
       })()
 
       return true
@@ -68,11 +74,10 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    *
    * 同じスコープ、同じ名前で複数のハンドラーは登録できず、エラーを投げます。
    *
-   * @param name - 処理するメッセージの名前。`MessageDefinitions` で定義した名前（キー）を指定します。
+   * @param name - 処理するメッセージの名前。メッセージ定義のキーを指定します。
    * @param handler - メッセージを処理するコールバック関数。引数は以下の通りです:
    *   - `req`: 送信側から送られたリクエストデータ
    *   - `sender`: `chrome.runtime.MessageSender` オブジェクト（タブ情報等）
-   * @returns 送信側に返すレスポンス。Promiseを返すと自動的に解決されます。
    * @throws 同じスコープ、同じ名前のハンドラーが既に登録されている場合
    *
    * @example
@@ -86,70 +91,27 @@ export class Receiver<T extends ValidatedMessageDefinitions, K extends string> {
    *   return success()
    * })
    *
-   * storageReceiver.on('getSettings', async () => {
-   *   const data = await chrome.storage.local.get('settings')
-   *   return success(data.settings)
+   * storageReceiver.on('getCurrentTab', async (_, sender) => {
+   *   const tab = sender.tab
+   *   if (!(tab && tab.id && tab.url && tab.title)) {
+   *     return failure('タブ情報を取得できませんでした')
+   *   }
+   *   return success({ id: tab.id, url: tab.url, title: tab.title })
    * })
    * ```
    */
-  on<V extends keyof T & string>(name: V, handler: MessageHandler<T, V>) {
+  on<TName extends keyof TDefs & string>(
+    name: TName,
+    handler: MessageHandler<TDefs, TName>,
+  ) {
     if (name in this._handlers) {
+      // リスナーを2つ以上追加してしまうと、どの返り値を返すか問題が発生する
       throw new Error(
-        `同じ名前のハンドラーは複数登録できません。（スコープ: "${this._scope}", 名前: "${name}）`,
+        `同じ名前のハンドラーは複数登録できません。（スコープ: "${this._scope}", 名前: "${name}"）`,
       )
     }
 
     this._handlers[name] = handler
-  }
-
-  /**
-   * すべてのメッセージを受け取るハンドラーを登録します。
-   *
-   * メインハンドラが**実行される前に**、登録順に実行されます。そのため、特別な場合を除き重い処理をしてはいけません。
-   *
-   * @param handler - すべてのメッセージを処理するコールバック関数。引数は以下の通りです:
-   *   - `context.name`: 受信したメッセージの名前
-   *   - `context.scope`: このレシーバーのスコープ名
-   *
-   * @example
-   * ```ts
-   * const storageReceiver = receive('storage')
-   *
-   * storageReceiver.onAnyBefore(({ name, scope }) => {
-   *   console.log(`[${scope}] ${name} を受信しました`)
-   * })
-   * ```
-   */
-  onAnyBefore(handler: AnyBeforeHandler<T, K>) {
-    this._anyBeforeHandlers.push(handler)
-  }
-
-  /**
-   * すべてのメッセージを受け取るハンドラーを登録します。
-   *
-   * メインハンドラが**実行され、レスポンスを返した後に**、登録順に実行されます。
-   *
-   * @param handler - すべてのメッセージを処理するコールバック関数。引数は以下の通りです:
-   *   - `context.name`: 受信したメッセージの名前
-   *   - `context.message`: リクエスト（`req`）とレスポンス（`res`）を含むオブジェクト
-   *   - `context.scope`: このレシーバーのスコープ名
-   *
-   * @example
-   * ```ts
-   * const storageReceiver = receive('storage')
-   *
-   * storageReceiver.onAnyAfter(({ name, message, scope }) => {
-   *   // name で分岐すると message の型が絞り込まれる
-   *   if (name === 'setSettings') {
-   *     console.log(message.req) // { theme: 'light' | 'dark'; language: string }
-   *   }
-   *
-   *   console.log(`[${scope}] ${name} が完了しました`, message.res)
-   * })
-   * ```
-   */
-  onAnyAfter(handler: AnyAfterHandler<T, K>) {
-    this._anyAfterHandlers.push(handler)
   }
 
   private _typed(
