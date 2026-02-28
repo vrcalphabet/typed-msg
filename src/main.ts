@@ -6,7 +6,6 @@ import { failure } from './utils'
 import { Failure } from './utils/Failure'
 
 export type * from './types/message'
-export type { MergedMessageDefs, MessageDefs } from './types/internal/message'
 export type { AsyncOrSync } from './types/utils'
 export * from './utils'
 export { MessagingError } from './errors/MessagingError'
