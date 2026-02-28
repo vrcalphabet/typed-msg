@@ -31,7 +31,7 @@ export class Failure {
  * 返された値は {@link Failure} クラスのインスタンスであり、
  * `instanceof Failure` で判定できます。
  *
- * @param message - エラーメッセージ。省略すると空文字列になります。
+ * @param data - エラーメッセージ、もしくは Error インスタンス。省略すると空文字列になります。
  * @returns {@link Failure} インスタンス
  *
  * @example
@@ -45,6 +45,9 @@ export class Failure {
  * })
  * ```
  */
-export function failure(message?: string): Failure {
-  return new Failure(InternalKey, message ?? '')
+export function failure(data?: string | Error): Failure {
+  return new Failure(
+    InternalKey,
+    data instanceof Error ? String(data) : (data ?? ''),
+  )
 }
