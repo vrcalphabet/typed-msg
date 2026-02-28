@@ -31,7 +31,7 @@ export class Failure {
  * 返された値は {@link Failure} クラスのインスタンスであり、
  * `instanceof Failure` で判定できます。
  *
- * @param data - エラーメッセージ、もしくは Error インスタンス。省略すると空文字列になります。
+ * @param data - エラーメッセージ。文字列以外を渡した場合は、文字列に変換されます。
  * @returns {@link Failure} インスタンス
  *
  * @example
@@ -44,10 +44,17 @@ export class Failure {
  *   return success({ id: tab.id, url: tab.url, title: tab.title })
  * })
  * ```
+ *
+ * @example
+ * ```ts
+ * tabsReceiver.on('getCurrentTab', async (_, sender) => {
+ *   try {
+ *     // something
+ *   } catch (e) {
+ *     return failure(e)
+ *   }
+ * })
  */
-export function failure(data?: string | Error): Failure {
-  return new Failure(
-    InternalKey,
-    data instanceof Error ? String(data) : (data ?? ''),
-  )
+export function failure(data?: unknown): Failure {
+  return new Failure(InternalKey, String(data))
 }
